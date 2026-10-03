@@ -46,8 +46,11 @@ def predict_paths(model, items, batch=32):
     return np.concatenate(out) if out else np.zeros((0, len(CLASSES)))
 
 
-def simulate(probs_seq, duration_s, interval_s, thr, window, need, cooldown_s, start_frame=None):
-    """Печать в реальном времени: -> (число тревог, [время тревог от начала])."""
+def simulate(probs_seq, duration_s, interval_s, thr, window, need, cooldown_s, mute_on_alarm=False):
+    """Печать в реальном времени: -> (число тревог, [время тревог от начала]).
+
+    mute_on_alarm: на каждую тревогу человек жмёт «Всё нормально», и этот вид молчит до
+    конца печати (так работает служба) - для нормальных печатей все тревоги ложные."""
     n = len(probs_seq)
     if n == 0 or not duration_s:
         return 0, []
@@ -58,8 +61,11 @@ def simulate(probs_seq, duration_s, interval_s, thr, window, need, cooldown_s, s
     while t < duration_s:
         i = min(int(t / period), n - 1)
         p = dict(zip(CLASSES, probs_seq[i]))
-        if d.update(p, t):
+        a = d.update(p, t)
+        if a:
             alarms.append(t)
+            if mute_on_alarm:
+                d.mute(a.cls)
         t += interval_s
     return len(alarms), alarms
 
@@ -117,18 +123,21 @@ def main():
     test_prints = sorted(seq)
     hours = sum(prints[pid]["duration_s"] for pid in test_prints) / 3600
 
-    def false_alarms(thr, window, need):
+    def false_alarms(thr, window, need, mute=False):
         total = 0
         per = {}
         for pid in test_prints:
             s = [p for _, p in sorted(seq[pid], key=lambda t: t[0])]
-            k, _ = simulate(s, prints[pid]["duration_s"], a.interval, thr, window, need, cfg["cooldown_s"])
+            k, _ = simulate(s, prints[pid]["duration_s"], a.interval, thr, window, need, cfg["cooldown_s"], mute)
             total += k
             if k:
                 per[prints[pid]["group"]] = per.get(prints[pid]["group"], 0) + k
         return total, per
 
     fa, fa_per = false_alarms(cfg["threshold"], cfg["window"], cfg["need"])
+    fa_muted, _ = false_alarms(cfg["threshold"], cfg["window"], cfg["need"], True)
+    real_normal = np.array([r["source"] == "timelapse" for r in rows])
+    real_fp = float((probs[real_normal][:, 1:].max(1) >= cfg["threshold"]).mean()) if real_normal.any() else None
     sweep = []
     for thr in (0.5, 0.6, 0.7, 0.8, 0.9, 0.95):
         for window, need in ((4, 3), (3, 2), (5, 4), (6, 5)):
@@ -184,6 +193,9 @@ def main():
         "test_prints": len(test_prints), "test_hours": round(hours, 2),
         "false_alarms": fa, "false_alarms_per_hour": round(fa / hours, 3) if hours else None,
         "false_alarm_groups": fa_per,
+        "false_alarms_with_all_good_button": fa_muted,
+        "false_alarms_per_hour_with_all_good_button": round(fa_muted / hours, 3) if hours else None,
+        "real_normal_frames": int(real_normal.sum()), "real_normal_false_positive_rate": real_fp,
         "frames": metrics, "confusion": conf, "skz_real_spaghetti": skz_rec,
         "detection_delay": {c: dstat(delays[c], missed[c]) for c in FAILURES},
         "sweep": sweep, "seconds": round(time.time() - t_start),
@@ -209,6 +221,11 @@ def render(P):
          f"нормальной печати ({P['test_prints']} тестовых печатей, модели которых сеть не видела).", "",
          "Каждый кадр таймлапса держится всё время своего слоя, служба смотрит раз в "
          f"{P['interval_s']:.0f} с - это худший случай для правила «{r['need']} из {r['window']}».", ""]
+    if P.get("false_alarms_per_hour_with_all_good_button") is not None:
+        L.append(f"Если на каждую ложную тревогу нажимать «✅ Всё нормально» (служба тогда глушит этот вид "
+                 f"брака до конца печати): **{P['false_alarms_per_hour_with_all_good_button']} в час** "
+                 f"({P['false_alarms_with_all_good_button']} тревог).")
+        L.append("")
     if P["false_alarm_groups"]:
         L.append("Где были ложные тревоги: " + ", ".join(f"{g} ({k})" for g, k in P["false_alarm_groups"].items()) + ".")
         L.append("")
@@ -220,8 +237,9 @@ def render(P):
         m = P["frames"][cls]
         det = _pct(m.get("detected_at_thr")) if cls != "normal" else "-"
         L.append(f"| {name(cls)} | {m['n']} | {_pct(m['precision'])} | {_pct(m['recall'])} | {det} |")
-    L += ["", f"Нормальный кадр принят за брак (порог {r['threshold']}): "
-          f"{_pct(P['frames']['normal']['false_positive_rate_at_thr'])} кадров.", ""]
+    L += ["", f"Настоящий нормальный кадр принят за брак (порог {r['threshold']}): "
+          f"{_pct(P.get('real_normal_false_positive_rate'))} из {P.get('real_normal_frames')} кадров. "
+          "Строка «норма» в таблице включает и нормальные кадры с правками (лишние детали, заливки).", ""]
     s = P["skz_real_spaghetti"]
     if s["n"]:
         L += ["## Настоящие спагетти (набор SKZ, другая камера)", "",

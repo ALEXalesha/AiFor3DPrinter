@@ -1,3 +1,5 @@
 -r requirements.txt
 pytest
 hypothesis
+# инструменты набора данных (dataset/synth.py) и их тесты
+opencv-python-headless

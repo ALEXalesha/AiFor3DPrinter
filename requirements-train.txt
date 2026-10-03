@@ -2,4 +2,3 @@
 #   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
 -r requirements-dev.txt
 onnx
-opencv-python-headless
