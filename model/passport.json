@@ -8,7 +8,7 @@
   "trained": "2026-10-03",
   "license": "weights CC BY-SA 4.0 (trained on SKZ CC BY-SA 4.0 data), code MIT"
  },
- "evaluated": "2026-10-03 18:10",
+ "evaluated": "2026-10-04 01:35",
  "service_rule": {
   "threshold": 0.7,
   "window": 4,
@@ -31,71 +31,71 @@
  "real_normal_false_positive_rate": 0.08124253285543608,
  "frames": {
   "normal": {
-   "n": 3393,
-   "precision": 0.9799092676604018,
-   "recall": 0.8912466843501327,
-   "false_positive_rate_at_thr": 0.08134394341290893
+   "n": 3328,
+   "precision": 0.9498714652956298,
+   "recall": 0.8882211538461539,
+   "false_positive_rate_at_thr": 0.08323317307692307
   },
   "spaghetti": {
-   "n": 724,
-   "precision": 0.7282850779510023,
-   "recall": 0.9033149171270718,
-   "detected_at_thr": 0.8715469613259669
+   "n": 769,
+   "precision": 0.7167689161554193,
+   "recall": 0.9115734720416124,
+   "detected_at_thr": 0.8517555266579974
   },
   "detached": {
-   "n": 518,
-   "precision": 0.7147147147147147,
-   "recall": 0.918918918918919,
-   "detected_at_thr": 0.8861003861003861
+   "n": 1074,
+   "precision": 0.8277467411545624,
+   "recall": 0.8277467411545624,
+   "detected_at_thr": 0.7932960893854749
   },
   "blob": {
-   "n": 765,
-   "precision": 0.9775429326287979,
-   "recall": 0.9673202614379085,
-   "detected_at_thr": 0.9529411764705882
+   "n": 787,
+   "precision": 0.9536921151439299,
+   "recall": 0.9682337992376112,
+   "detected_at_thr": 0.9644218551461246
   },
   "no_extrusion": {
-   "n": 562,
+   "n": 590,
    "precision": 1.0,
-   "recall": 0.9875444839857651,
-   "detected_at_thr": 0.9644128113879004
+   "recall": 0.9915254237288136,
+   "detected_at_thr": 0.9830508474576272
   }
  },
  "confusion": [
   [
-   3024,
-   219,
-   134,
+   2956,
+   223,
+   133,
    16,
    0
   ],
   [
-   25,
-   654,
-   44,
-   1,
-   0
-  ],
-  [
-   27,
-   15,
-   476,
+   28,
+   701,
+   40,
    0,
    0
   ],
   [
-   6,
-   9,
-   10,
-   740,
+   121,
+   43,
+   889,
+   21,
    0
   ],
   [
-   4,
-   1,
+   5,
+   8,
+   12,
+   762,
+   0
+  ],
+  [
    2,
+   3,
    0,
-   555
+   0,
+   585
   ]
  ],
  "skz_real_spaghetti": {
@@ -107,13 +107,13 @@
   "spaghetti": {
    "prints": 23,
    "detected": 23,
-   "median_s": 40,
+   "median_s": 42,
    "within_5min": 0.913
   },
   "detached": {
    "prints": 23,
    "detected": 22,
-   "median_s": 70,
+   "median_s": 65,
    "within_5min": 0.739
   },
   "blob": {
@@ -125,10 +125,17 @@
   "no_extrusion": {
    "prints": 23,
    "detected": 22,
-   "median_s": 39,
-   "within_5min": 0.783
+   "median_s": 41,
+   "within_5min": 0.826
   }
  },
+ "drag_delay": {
+  "prints": 23,
+  "detected": 23,
+  "median_s": 8,
+  "within_5min": 0.913
+ },
+ "drag_alarm_before_start": 0,
  "sweep": [
   {
    "threshold": 0.5,
@@ -145,8 +152,8 @@
   {
    "threshold": 0.5,
    "rule": "4/5",
-   "false_alarms": 20,
-   "per_hour": 0.457
+   "false_alarms": 21,
+   "per_hour": 0.48
   },
   {
    "threshold": 0.5,
@@ -241,14 +248,14 @@
   {
    "threshold": 0.9,
    "rule": "4/5",
-   "false_alarms": 14,
-   "per_hour": 0.32
+   "false_alarms": 12,
+   "per_hour": 0.274
   },
   {
    "threshold": 0.9,
    "rule": "5/6",
-   "false_alarms": 13,
-   "per_hour": 0.297
+   "false_alarms": 12,
+   "per_hour": 0.274
   },
   {
    "threshold": 0.95,
@@ -275,5 +282,5 @@
    "per_hour": 0.183
   }
  ],
- "seconds": 180
+ "seconds": 306
 }

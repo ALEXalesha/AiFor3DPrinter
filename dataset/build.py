@@ -66,6 +66,9 @@ def _work(job):
         if cls == "normal-edit":
             out = synth.neutral_edit(img, rng)
             label = "normal"
+        elif cls == "dragged":
+            out = synth.dragged(img, rng)
+            label = "detached"
         elif cls == "spaghetti":
             out = synth.spaghetti(img, rng, _PATCHES[split])
             label = cls
@@ -82,7 +85,7 @@ def _work(job):
     return rows
 
 
-def build(rate=0.3, edit_rate=0.35, workers=4, seed=1):
+def build(rate=0.3, edit_rate=0.35, workers=4, seed=1, drag=False):
     root = dataset_dir()
     prints = json.load(open(os.path.join(root, "prints.json"), encoding="utf-8"))
     synth_dir = dataset_dir("synth")
@@ -98,6 +101,11 @@ def build(rate=0.3, edit_rate=0.35, workers=4, seed=1):
             if i < 2:                     # первые кадры - пустой стол без головы
                 continue
             want = [c for c in SYNTH_CLASSES if rng.random() < rate]
+            # «деталь таскает по столу» (отрыв 03.10.2026) - чаще в первой половине печати.
+            # По умолчанию выключено: сеть с такими кадрами (04.10) давала 0.69 ложной тревоги
+            # в час против 0.41, а искусственное «таскание» и так ловила прежняя сеть (23 из 23).
+            if drag and rng.random() < (0.35 if i < len(frames) * 0.5 else 0.12):
+                want.append("dragged")
             if rng.random() < edit_rate:
                 want.append("normal-edit")
             if want:
@@ -151,4 +159,5 @@ if __name__ == "__main__":
         kw["rate"] = float(a[a.index("--rate") + 1])
     if "--workers" in a:
         kw["workers"] = int(a[a.index("--workers") + 1])
+    kw["drag"] = "--drag" in a
     build(**kw)

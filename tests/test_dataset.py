@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from dataset import synth
@@ -216,3 +216,23 @@ def test_extra_parts_adds_upright_copies_on_the_bed():
     ys, _ = np.nonzero(red)
     assert ys.min() >= synth.HEAD_Y - 5
     assert (out[175:260, 280:360] == img[175:260, 280:360]).mean() > 0.9
+
+
+def test_drag_sequence_moves_part_and_leaves_a_trail():
+    """Отрыв 03.10.2026: деталь таскает по столу - она уходит со своего места, за ней след."""
+    img = fake_frame()
+    seq = synth.DragSequence(img, np.random.default_rng(2))
+    outs = [seq.apply(img) for _ in range(5)]
+    red_home = [((o[175:260, 280:360, 0] > 150) & (o[175:260, 280:360, 1] < 90)).mean() for o in outs]
+    assert max(red_home) < 0.7, red_home                     # на своём месте детали больше нет целиком
+    diff = [np.abs(a.astype(int) - b.astype(int)).sum() for a, b in zip(outs, outs[1:])]
+    assert min(diff) > 1000                                    # каждый шаг кадр меняется
+
+
+@settings(max_examples=80)
+@given(st.integers(0, 2**31 - 1), st.booleans())
+def test_law_drag_never_crashes(seed, with_part):
+    img = fake_frame(obj=with_part)
+    rng = np.random.default_rng(seed)
+    out = synth.dragged(img, rng)
+    assert out.shape == img.shape and out.dtype == np.uint8

@@ -329,4 +329,94 @@ def neutral_edit(img, rng):
     return out
 
 
+class DragSequence:
+    """Деталь оторвалась и сопло таскает её по столу (так было 03.10.2026, первые слои).
+
+    Состояние живёт между кадрами: деталь (вырезанная с первого кадра или, если на столе
+    пока только тонкий первый слой, плоская лепёшка цвета пластика) на каждом следующем
+    кадре сдвигается на 20-70 px и поворачивается, со своего места она исчезает, а за ней
+    по столу остаётся размазанный след. Иногда деталь висит на сопле у линии сопла."""
+
+    def __init__(self, first_img, rng):
+        self.rng = rng
+        img = as_rgb(first_img)
+        mask, box = object_mask(img, min_area=60)
+        if box is not None and (box[2] - box[0]) * (box[3] - box[1]) < 160 * 120:
+            x0, y0, x1, y1 = box
+            self.crop = img[y0:y1, x0:x1].copy()
+            self.cmask = (mask[y0:y1, x0:x1] * 255).astype(np.uint8)
+            self.color = filament_color(img, mask, rng)
+            self.pos = np.array([(x0 + x1) / 2, (y0 + y1) / 2], dtype=np.float64)
+        else:
+            self.color = PALETTE[rng.integers(len(PALETTE))]
+            w, h = int(rng.uniform(40, 100)), int(rng.uniform(8, 18))
+            self.crop = np.zeros((h, w, 3), np.uint8)
+            self.crop[:] = self.color
+            shade = np.linspace(1.1, 0.7, h)[:, None, None]
+            self.crop = np.clip(self.crop * shade, 0, 255).astype(np.uint8)
+            self.cmask = np.zeros((h, w), np.uint8)
+            cv2.ellipse(self.cmask, (w // 2, h // 2), (w // 2 - 1, h // 2 - 1), 0, 0, 360, 255, -1)
+            self.pos = np.array([rng.uniform(220, 420), rng.uniform(HEAD_Y + 30, H - 40)])
+        self.trail = np.zeros((H, W), np.float32)
+        self.trail_rgb = np.zeros((H, W, 3), np.float32)
+        self.angle = 0.0
+        self.steps = 0
+
+    def apply(self, img):
+        rng = self.rng
+        img = as_rgb(img)
+        mask, box = object_mask(img, min_area=60)
+        out = img.copy()
+        if box is not None and self.steps == 0:
+            out = cv2.inpaint(out, cv2.dilate(mask, np.ones((7, 7), np.uint8)), 5, cv2.INPAINT_TELEA)
+        elif box is not None:
+            out = cv2.inpaint(out, cv2.dilate(mask, np.ones((7, 7), np.uint8)), 5, cv2.INPAINT_TELEA)
+        old = self.pos.copy()
+        if rng.random() < 0.25:                    # висит на сопле
+            self.pos = np.array([rng.uniform(200, 440), rng.uniform(HEAD_Y - 5, HEAD_Y + 20)])
+        else:
+            step = rng.uniform(20, 70)
+            a = rng.uniform(0, 2 * math.pi)
+            self.pos = self.pos + [step * math.cos(a), step * math.sin(a) * 0.5]
+        self.pos[0] = np.clip(self.pos[0], 60, W - 60)
+        self.pos[1] = np.clip(self.pos[1], HEAD_Y - 5, H - 15)
+        self.angle += rng.uniform(-60, 60)
+        t = np.zeros((H, W), np.uint8)
+        cv2.line(t, tuple(int(v) for v in old), tuple(int(v) for v in self.pos), 255, int(rng.integers(2, 6)), cv2.LINE_AA)
+        if rng.random() < 0.7:
+            for _ in range(int(rng.integers(1, 4))):
+                pts = _strand(rng, *self.pos, int(rng.integers(15, 60)), 2.5, 0.5)
+                cv2.polylines(t, [pts], False, 255, 1, cv2.LINE_AA)
+        self.trail = np.maximum(self.trail, t.astype(np.float32) / 255 * 0.85)
+        col = np.array(self.color, np.float32) * rng.uniform(0.7, 1.0)
+        self.trail_rgb[t > 0] = col
+        a = self.trail[..., None]
+        out = (out.astype(np.float32) * (1 - a) + self.trail_rgb * a).astype(np.uint8)
+        h, w = self.crop.shape[:2]
+        M = cv2.getRotationMatrix2D((w / 2, h / 2), self.angle, 1.0)
+        cos, sin = abs(M[0, 0]), abs(M[0, 1])
+        nw, nh = int(h * sin + w * cos) + 2, int(h * cos + w * sin) + 2
+        M[0, 2] += nw / 2 - w / 2
+        M[1, 2] += nh / 2 - h / 2
+        rc = cv2.warpAffine(self.crop, M, (nw, nh))
+        rm = cv2.warpAffine(self.cmask, M, (nw, nh)).astype(np.float32) / 255
+        px, py = int(self.pos[0] - nw / 2), int(self.pos[1] - nh / 2)
+        x0, y0, x1, y1 = max(px, 0), max(py, 0), min(px + nw, W), min(py + nh, H)
+        if x1 > x0 and y1 > y0:
+            sub = rm[y0 - py:y1 - py, x0 - px:x1 - px][..., None]
+            roi = out[y0:y1, x0:x1].astype(np.float32)
+            out[y0:y1, x0:x1] = (roi * (1 - sub) + rc[y0 - py:y1 - py, x0 - px:x1 - px] * sub).astype(np.uint8)
+        self.steps += 1
+        return out
+
+
+def dragged(img, rng, steps=None):
+    """Один кадр «деталь таскает по столу»: несколько шагов DragSequence по одному кадру."""
+    seq = DragSequence(img, rng)
+    out = img
+    for _ in range(int(steps or rng.integers(1, 7))):
+        out = seq.apply(img)
+    return out
+
+
 GENERATORS = {"spaghetti": spaghetti, "blob": blob, "detached": detached, "no_extrusion": no_extrusion}
