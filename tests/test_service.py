@@ -125,3 +125,15 @@ def test_run_stops_with_max_steps(fake_camera):
     waits = []
     svc.run(max_steps=3, sleep=waits.append)
     assert waits == [30, 30]
+
+
+def test_not_printing_states_take_no_snapshots(fake_camera):
+    """Нагрев, калибровка, пауза, незнакомый код - стол пустой или стоит: камеру не трогаем."""
+    for text in ("Статус: нагрев", "Статус: калибровка стола", "Статус: пауза", "Статус: ставится на паузу",
+                 "Статус: код 7", "Статус: проверка файла", "Статус: завершено", "мусор"):
+        fake_camera.routes.clear()
+        fake_camera.status_text = text
+        svc = make(fake_camera, FakeModel(default=bad()))
+        for _ in range(3):
+            assert svc.step()[1] == "idle", text
+        assert set(fake_camera.routes) == {"status"}, text

@@ -37,3 +37,8 @@ jobs:
 
       - name: Тесты
         run: python -m pytest -q
+
+      - name: Самопроверка без экрана
+        run: |
+          python main.py selftest selftest.txt
+          Get-Content selftest.txt
