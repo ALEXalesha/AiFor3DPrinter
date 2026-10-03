@@ -4,7 +4,7 @@
 
 [Русская версия](README.ru.md) - the full manual; this file summarises it. The window and the Telegram texts are in Russian and English.
 
-> Status on 2026-10-03: plan steps 1-7 are done (service, network, dataset, window, bot buttons). A week of observation on real prints (step 8) and the release (step 9) are ahead. The n8n bot changes live on the `aiforprinter` branch of the bot repository and are **not deployed yet**.
+> Status on 2026-10-03: plan steps 1-7 are done (service, network, dataset, window, bot buttons). A week of observation on real prints (step 8) and the release (step 9) are ahead. The n8n bot with the alert buttons was deployed on 2026-10-03 and the service runs hidden (`tools\watch-hidden.vbs`, stop with `tools\stop-watch.ps1`).
 
 ## What it is
 
