@@ -152,3 +152,66 @@ def test_min_size_with_bigger_fonts_fits(win):
 def test_window_never_shown_by_tests(win):
     assert not win.isVisible()
     assert os.environ.get("QT_QPA_PLATFORM") == "offscreen"
+
+
+GAP = 8          # между соседними элементами
+EDGE = 16        # от края страницы
+
+
+def _settings_widgets(w):
+    from PySide6.QtWidgets import QAbstractButton, QAbstractSpinBox, QComboBox, QLabel, QLineEdit
+    page = w.tabs.widget(2).widget()
+    out = []
+    for cls in (QLabel, QAbstractButton, QAbstractSpinBox, QLineEdit, QComboBox):
+        for c in page.findChildren(cls):
+            if c.isVisible() and c.parentWidget() is page:
+                out.append(c)
+    return page, out
+
+
+@pytest.mark.parametrize("th", list(theme.TOKENS))
+@pytest.mark.parametrize("size", ["min", "default"])
+def test_law_settings_spacing(qapp, th, size):
+    """Алексей 03.10: «слишком близко текст и элементы». Закон геометрии страницы настроек:
+    элементы не ближе GAP друг к другу, текст не ближе EDGE к краю, подписи полей не переносятся,
+    у галочки текст отстоит от квадратика."""
+    from PySide6.QtCore import QRect
+    from PySide6.QtWidgets import QApplication, QCheckBox, QLabel, QStyle, QStyleOptionButton
+    config.save(dict(config.DEFAULTS, theme=th))
+    w = MainWindow(remember=False)
+    if size == "min":
+        w.resize(w.minimumSize())
+    w.tabs.setCurrentIndex(2)
+    w.show()
+    QApplication.processEvents()
+    page, ws = _settings_widgets(w)
+    view = w.tabs.widget(2).viewport()
+    rects = [(x, QRect(x.mapTo(page, x.rect().topLeft()), x.size())) for x in ws]
+    for i, (a, ra) in enumerate(rects):
+        assert ra.left() >= EDGE and view.width() - ra.right() >= EDGE, (a.objectName(), a.metaObject().className(), ra)
+        for b, rb in rects[i + 1:]:
+            grown = ra.adjusted(-GAP + 1, -GAP + 1, GAP - 1, GAP - 1)
+            assert not grown.intersects(rb), (getattr(a, "text", lambda: "")(), getattr(b, "text", lambda: "")())
+    for lab in w.set_labels.values():
+        assert not lab.wordWrap() and lab.width() >= lab.sizeHint().width(), lab.text()
+    for cb in page.findChildren(QCheckBox):
+        opt = QStyleOptionButton()
+        cb.initStyleOption(opt)
+        ind = cb.style().subElementRect(QStyle.SE_CheckBoxIndicator, opt, cb)
+        txt = cb.style().subElementRect(QStyle.SE_CheckBoxContents, opt, cb)
+        assert txt.left() - ind.right() >= 10, (cb.text(), ind, txt)
+    w.close()
+
+
+def test_law_live_and_top_bar_spacing(win):
+    from PySide6.QtWidgets import QApplication
+    win.show()
+    QApplication.processEvents()
+    lay = win.centralWidget().layout()
+    m = lay.contentsMargins()
+    assert min(m.left(), m.right()) >= 16 and lay.spacing() >= 10
+    assert win.tabs.widget(0).layout().spacing() >= 14
+    card_l = win.bars["normal"].parentWidget().layout()
+    cm = card_l.contentsMargins()
+    assert min(cm.left(), cm.right(), cm.top()) >= 14
+    win.hide()

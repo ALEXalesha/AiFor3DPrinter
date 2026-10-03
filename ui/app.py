@@ -24,6 +24,8 @@ from watcher.classes import CLASSES, FAILURES, name
 from watcher.storage import load_json
 
 STALE_S = 180          # state.json старше - служба не запущена
+# Отступы окна (Алексей 03.10: «слишком близко текст и элементы»); закон - tests/test_ui.py
+SPACE = {"margin": 20, "column": 18, "card": 16}
 
 
 class Combo(QComboBox):
@@ -161,8 +163,10 @@ class MainWindow(QMainWindow):
         page = QWidget()
         page.setObjectName("page")
         root = QVBoxLayout(page)
-        root.setContentsMargins(18, 14, 18, 14)
+        root.setContentsMargins(SPACE["margin"], 14, SPACE["margin"], 14)
+        root.setSpacing(12)
         top = QHBoxLayout()
+        top.setSpacing(12)
         self.title = QLabel("AiForPrinter")
         self.title.setObjectName("title")
         self.state_label = QLabel()
@@ -195,7 +199,10 @@ class MainWindow(QMainWindow):
     def build_live(self):
         w = QWidget()
         lay = QHBoxLayout(w)
+        lay.setContentsMargins(0, 12, 0, 0)
+        lay.setSpacing(SPACE["column"])
         left = QVBoxLayout()
+        left.setSpacing(10)
         self.image = QLabel()
         self.image.setAlignment(Qt.AlignCenter)
         self.image.setMinimumSize(480, 270)
@@ -220,10 +227,14 @@ class MainWindow(QMainWindow):
 
         side = card()
         sl = QVBoxLayout(side)
+        sl.setContentsMargins(SPACE["card"], SPACE["card"], SPACE["card"], SPACE["card"])
+        sl.setSpacing(10)
         self.conf_title = wrap_label()
         sl.addWidget(self.conf_title)
         self.bars, self.bar_labels = {}, {}
         grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(10)
         for i, cls in enumerate(CLASSES):
             lab = QLabel()
             bar = QProgressBar()
@@ -246,6 +257,8 @@ class MainWindow(QMainWindow):
     def build_alerts(self):
         w = QWidget()
         lay = QHBoxLayout(w)
+        lay.setContentsMargins(0, 12, 0, 0)
+        lay.setSpacing(SPACE["column"])
         self.alert_list = QListWidget()
         self.alert_list.setIconSize(QPixmap(160, 90).size())
         self.alert_list.currentRowChanged.connect(self.show_alert)
@@ -264,11 +277,15 @@ class MainWindow(QMainWindow):
         w.setObjectName("page")
         outer.setWidget(w)
         form = QGridLayout(w)
+        form.setContentsMargins(SPACE["margin"], 16, SPACE["margin"] + 8, 16)
+        form.setHorizontalSpacing(SPACE["column"])
+        form.setVerticalSpacing(12)
         form.setColumnStretch(1, 1)
         self.set_labels = {}
 
         def row(key, widget, r):
-            lab = wrap_label()
+            lab = QLabel()                 # короткая подпись поля - в одну строку, столбец по ней
+            lab.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             self.set_labels[key] = lab
             form.addWidget(lab, r, 0)
             form.addWidget(widget, r, 1)
@@ -293,17 +310,19 @@ class MainWindow(QMainWindow):
                                         ("window", self.window_spin), ("need", self.need_spin),
                                         ("cooldown", self.cooldown), ("camera_url", self.url)]):
             row(key, wdg, r)
-        form.addWidget(self.telegram, 6, 0, 1, 2)
-        form.addWidget(self.autopause, 7, 0, 1, 2)
+        form.setRowMinimumHeight(6, 8)
+        form.addWidget(self.telegram, 7, 0, 1, 2)
+        form.addWidget(self.autopause, 8, 0, 1, 2)
         self.autopause_hint = wrap_label(obj="muted")
-        form.addWidget(self.autopause_hint, 8, 0, 1, 2)
+        form.addWidget(self.autopause_hint, 9, 0, 1, 2)
         self.save_btn = QPushButton()
         self.save_btn.setObjectName("primary")
         self.save_btn.clicked.connect(self.save_settings)
-        form.addWidget(self.save_btn, 9, 0)
+        form.setRowMinimumHeight(10, 6)
+        form.addWidget(self.save_btn, 11, 0)
         self.save_msg = wrap_label(obj="muted")
-        form.addWidget(self.save_msg, 9, 1)
-        form.setRowStretch(10, 1)
+        form.addWidget(self.save_msg, 11, 1)
+        form.setRowStretch(12, 1)
         self.load_settings()
         return outer
 

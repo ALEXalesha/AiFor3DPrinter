@@ -69,7 +69,7 @@ QLabel#stateOk {{ color: {p['good']}; font-weight: 600; }}
 QLabel#stateBad {{ color: {p['danger']}; font-weight: 600; }}
 QLabel#stateIdle {{ color: {p['muted']}; font-weight: 600; }}
 QFrame#card {{ background: {p['surface']}; border: 1px solid {p['border']}; border-radius: 14px; }}
-QPushButton {{ background: {p['surface2']}; border: 1px solid {p['border']}; border-radius: 10px; padding: 8px 16px; }}
+QPushButton {{ background: {p['surface2']}; border: 1px solid {p['border']}; border-radius: 10px; padding: 8px 18px; }}
 QPushButton:hover {{ border-color: {p['accent']}; }}
 QPushButton#primary {{ background: {p['accent']}; color: {p['accent_text']}; border-color: {p['accent']}; font-weight: 600; }}
 QTabWidget::pane {{ border: none; }}
@@ -85,7 +85,7 @@ QComboBox::down-arrow {{ image: none; width: 0; height: 0; }}
 QComboBox QAbstractItemView {{ background: {p['surface']}; border: 1px solid {p['border']};
     selection-background-color: {p['accent']}; selection-color: {p['accent_text']}; }}
 QSpinBox::up-button, QSpinBox::down-button, QDoubleSpinBox::up-button, QDoubleSpinBox::down-button {{ width: 16px; border: none; }}
-QCheckBox {{ spacing: 9px; }}
+QCheckBox {{ spacing: 12px; padding: 2px 0; }}
 QCheckBox::indicator {{ width: 18px; height: 18px; border-radius: 5px; border: 1px solid {p['border']}; background: {p['surface2']}; }}
 QCheckBox::indicator:checked {{ background: {p['accent']}; border-color: {p['accent']}; }}
 QProgressBar {{ background: {p['surface2']}; border: none; border-radius: 6px; height: 12px; text-align: right; }}

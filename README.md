@@ -22,7 +22,7 @@ The printer camera and the n8n Telegram bot already existed (`camera_server.py` 
 
 ## Printer safety: "never stopprint"
 
-The client (`watcher/camera_client.py`) knows exactly three paths - `/snap`, `/status`, `/pause` - in a frozen set. A less obvious hole was closed as well: camera_server routes on `self.path.split("?")[0]`, so a configured address like `http://127.0.0.1:8099/stopprint?x=` would have turned a snapshot request into `/stopprint?x=/snap` and stopped the print. The camera_server address is therefore accepted only as `http://host:port`, with no path, query, fragment or credentials. Property tests run the service against a fake camera_server over random sequences of statuses, failures and network outputs; there is never a `/stopprint`, and without auto-pause never a `/pause`. `tools/mutate.py` breaks 17 rules in a copy of the code and checks that the right test fails: 17 of 17 are caught.
+The client (`watcher/camera_client.py`) knows exactly three paths - `/snap`, `/status`, `/pause` - in a frozen set. A less obvious hole was closed as well: camera_server routes on `self.path.split("?")[0]`, so a configured address like `http://127.0.0.1:8099/stopprint?x=` would have turned a snapshot request into `/stopprint?x=/snap` and stopped the print. The camera_server address is therefore accepted only as `http://host:port`, with no path, query, fragment or credentials. Property tests run the service against a fake camera_server over random sequences of statuses, failures and network outputs; there is never a `/stopprint`, and without auto-pause never a `/pause`. `tools/mutate.py` breaks 23 rules in a copy of the code and checks that the right test fails: 23 of 23 are caught.
 
 ## Model
 
@@ -33,6 +33,10 @@ Full passport: [model/PASSPORT.md](model/PASSPORT.md) (in Russian). The headline
 The first trained network gave 0.87 false alarms per hour; 34 of 38 came from three prints with several red parts on the bed. Synthetic spaghetti is "coloured stuff scattered on the bed", and normal training frames almost always showed one part. The fix (`dataset/synth.py::extra_parts`) adds upright copies of the part to normal frames, and normal frames now make up 55% of an epoch; that halved the alarms. The rest needs data from the camera itself, which the "All good" button collects.
 
 The failures in the evaluation are synthetic, drawn over real frames of the test prints, so the per-type accuracy is optimistic. Normal frames are real, so the false-alarm rate is honest - but measured on timelapses, not on live shots. Hence the observation week, with auto-pause off.
+
+## The missed detachment of 2026-10-03
+
+A thin early-layer part came off the bed, the nozzle dragged it around and finally hit the toolhead with it; the service sent nothing. Its journal shows it was watching every attempt and never raised an alarm, but it kept neither per-shot scores nor frames, so what the network saw cannot be reconstructed (the cancelled print has no timelapse). Now every shot is logged with its scores, frames are kept per print in a size-capped local store (`main.py review` shows the timeline, `--rescore` re-runs a newer network), the first 10 layers are shot every 5 s with a more sensitive rule (0.5, 2 of 3), and a background-motion metric is logged for calibration on live shots. On synthetic "part dragged across the bed" sequences from 5% of the print the alarm comes in a median of 8 s on 23 of 23 test prints - but the old network already did that, so the synthetic drag does not look like the real event; the next real case will be reviewable.
 
 ## Data
 
@@ -48,6 +52,7 @@ uv pip install -r requirements-dev.txt
 .venv\Scripts\python main.py ui        # window
 .venv\Scripts\python main.py watch     # service (or tools\watch.cmd)
 .venv\Scripts\python main.py check     # one shot now, read-only
+.venv\Scripts\python main.py review    # what the service saw: prints and per-shot scores
 .venv\Scripts\python -m pytest -q      # tests (no printer, no camera_server, no bot)
 .venv\Scripts\python tools\mutate.py   # mutation check
 ```
