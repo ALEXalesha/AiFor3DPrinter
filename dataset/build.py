@@ -82,7 +82,7 @@ def _work(job):
     return rows
 
 
-def build(rate=0.3, edit_rate=0.15, workers=4, seed=1):
+def build(rate=0.3, edit_rate=0.35, workers=4, seed=1):
     root = dataset_dir()
     prints = json.load(open(os.path.join(root, "prints.json"), encoding="utf-8"))
     synth_dir = dataset_dir("synth")

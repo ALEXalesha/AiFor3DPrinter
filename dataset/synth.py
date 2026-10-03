@@ -268,8 +268,53 @@ def no_extrusion(img, rng):
     return out
 
 
+def extra_parts(img, rng):
+    """Ещё 1-4 детали на столе - стоят ровно (копии печатаемой, мельче и сдвинуты).
+
+    На столе часто печатается несколько деталей сразу, а первая сеть принимала пару
+    красных коробок рядом за спагетти. Копии стоят так же, как оригинал (не на боку,
+    как в detached), низом на столе, и остаются нормой."""
+    mask, box = object_mask(img, min_area=300)
+    if box is None:
+        return None
+    out = img.copy()
+    x0, y0, x1, y1 = box
+    crop, cm = img[y0:y1, x0:x1], mask[y0:y1, x0:x1]
+    taken = [box]
+    for _ in range(int(rng.integers(1, 5))):
+        s = rng.uniform(0.35, 1.0)
+        w, h = max(4, int((x1 - x0) * s)), max(4, int((y1 - y0) * s))
+        if w >= W - 10 or h >= H - HEAD_Y - 5:
+            continue
+        pc = cv2.resize(crop, (w, h), interpolation=cv2.INTER_AREA)
+        pm = cv2.resize(cm * 255, (w, h), interpolation=cv2.INTER_LINEAR)
+        if rng.random() < 0.5:
+            pc, pm = pc[:, ::-1], pm[:, ::-1]
+        for _try in range(15):
+            bottom = int(rng.uniform(max(HEAD_Y + h, y1 - 30), H - 2))
+            px = int(rng.uniform(45, W - w - 5))
+            py = bottom - h
+            if py < HEAD_Y - 5:
+                continue
+            if all(px + w < b[0] - 4 or px > b[2] + 4 or py + h < b[1] - 4 or py > b[3] + 4 for b in taken):
+                break
+        else:
+            continue
+        a = (cv2.GaussianBlur(pm, (3, 3), 0).astype(np.float32) / 255)[..., None]
+        shade = rng.uniform(0.75, 1.1)
+        roi = out[py:py + h, px:px + w].astype(np.float32)
+        out[py:py + h, px:px + w] = np.clip(roi * (1 - a) + pc.astype(np.float32) * shade * a, 0, 255).astype(np.uint8)
+        taken.append((px, py, px + w, py + h))
+    return out
+
+
 def neutral_edit(img, rng):
-    """Та же заливка и вставка, что у подделок, но без брака: стол остаётся столом."""
+    """Та же заливка и вставка, что у подделок, но без брака: стол остаётся столом,
+    или на нём стоят ещё детали (extra_parts)."""
+    if rng.random() < 0.6:
+        more = extra_parts(img, rng)
+        if more is not None:
+            return more
     out = img.copy()
     mask, box = object_mask(img)
     for _ in range(int(rng.integers(1, 3))):

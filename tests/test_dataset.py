@@ -204,3 +204,15 @@ def test_build_keeps_every_print_in_one_part(_own_data_dir):
         by_print.setdefault(r["print"], set()).add(r["split"])
     assert {p: s for p, s in by_print.items()} == {"p0": {"train"}, "p1": {"val"}, "p2": {"test"}}
     assert {r["cls"] for r in rows if r["print"] == "p2"} == {"normal", "spaghetti", "blob", "detached", "no_extrusion"}
+
+
+def test_extra_parts_adds_upright_copies_on_the_bed():
+    """Несколько деталей на столе - это норма (сеть путала их со спагетти)."""
+    img = fake_frame()
+    out = synth.extra_parts(img, np.random.default_rng(4))
+    red0 = ((img[..., 0] > 150) & (img[..., 1] < 90)).sum()
+    red = (out[..., 0] > 120) & (out[..., 1] < 100)
+    assert red.sum() > red0 * 1.3
+    ys, _ = np.nonzero(red)
+    assert ys.min() >= synth.HEAD_Y - 5
+    assert (out[175:260, 280:360] == img[175:260, 280:360]).mean() > 0.9

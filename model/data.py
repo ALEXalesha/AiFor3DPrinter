@@ -74,8 +74,8 @@ class FrameDataset(torch.utils.data.Dataset):
         return to_tensor(img), self.labels[i]
 
 
-def balanced_weights(rows, normal_share=0.4, skz_share_of_spaghetti=0.3):
-    """Веса выборки: норма ~40% эпохи (ложные тревоги важнее всего), брак поровну.
+def balanced_weights(rows, normal_share=0.55, skz_share_of_spaghetti=0.3):
+    """Веса выборки: норма ~55% эпохи (ложные тревоги важнее всего), брак поровну.
     Внутри спагетти кадры SKZ (чужая камера) - не больше трети."""
     n = len(CLASSES)
     groups = {}
