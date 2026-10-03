@@ -74,6 +74,7 @@ class Service:
             old = self.decider
             self.decider = self._new_decider()
             self.decider.last_alarm_t = old.last_alarm_t
+            self.decider.muted = set(old.muted)
 
     def _state(self, **kw):
         kw.setdefault("t", self.clock())
@@ -81,13 +82,25 @@ class Service:
         save_json(paths.data_path("state.json"), kw)
         return kw
 
+    def _apply_answer(self, aid, kind):
+        """«Всё нормально» на тревогу текущей печати - этот вид брака молчит до её конца."""
+        if kind != "ok":
+            return
+        rec = alerts.load_alert(aid)
+        if rec and self.print_key and (rec.get("filename") or "?") == self.print_key:
+            self.decider.mute(rec.get("cls"))
+            self.log.info("«%s» заглушён до конца печати %s (ответ на %s)", rec.get("cls"), self.print_key, aid)
+
     def step(self):
         """Один шаг. -> (секунд до следующего шага, что произошло)."""
         self._reload_config()
         try:
-            alerts.process_inbox(self.cfg, self.log)
+            answers = alerts.process_inbox(self.cfg, self.log)
         except OSError as e:
+            answers = []
             self.log.warning("ответы бота не прочитаны: %s", e)
+        for aid, kind in answers:
+            self._apply_answer(aid, kind)
         now = self.clock()
         try:
             status = self.client.status()
@@ -144,7 +157,7 @@ class Service:
         self.series = self.series[-2000:]
         self._state(state="printing", status=status.text, filename=status.filename, layer=status.layer,
                     total=status.total_layers, probs=pred.probs, top=pred.top, top_fail=top_fail,
-                    series=self.series[-400:])
+                    muted=sorted(self.decider.muted), series=self.series[-400:])
 
         alarm = self.decider.update(pred.probs, now)
         if alarm is None:

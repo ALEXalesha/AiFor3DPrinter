@@ -137,3 +137,31 @@ def test_not_printing_states_take_no_snapshots(fake_camera):
         for _ in range(3):
             assert svc.step()[1] == "idle", text
         assert set(fake_camera.routes) == {"status"}, text
+
+
+def test_all_good_mutes_that_failure_for_this_print(fake_camera):
+    """«Всё нормально» на тревогу - этот вид брака молчит до конца этой печати (другие - нет)."""
+    model = FakeModel(default=bad("spaghetti"))
+    svc = make(fake_camera, model, cooldown_s=0)
+    assert [svc.step()[1] for _ in range(3)] == ["ok", "ok", "alarm"]
+    aid = alerts.load_history()[-1]["id"]
+    inbox = os.path.join(os.environ["USERPROFILE"], "n8n_pc", "run", "aifp", "inbox")
+    os.makedirs(inbox)
+    open(os.path.join(inbox, aid + ".ok"), "w").write("1")
+    assert [svc.step()[1] for _ in range(6)] == ["ok"] * 6
+    model.default = bad("blob")
+    assert [svc.step()[1] for _ in range(3)] == ["ok", "ok", "alarm"]
+    model.default = bad("spaghetti")
+    fake_camera.status_text = STATUS_PRINTING.replace("cube.gcode", "next.gcode")
+    assert [svc.step()[1] for _ in range(3)] == ["ok", "ok", "alarm"]
+
+
+def test_pause_answer_does_not_mute(fake_camera):
+    svc = make(fake_camera, FakeModel(default=bad()), cooldown_s=0)
+    for _ in range(3):
+        svc.step()
+    aid = alerts.load_history()[-1]["id"]
+    inbox = os.path.join(os.environ["USERPROFILE"], "n8n_pc", "run", "aifp", "inbox")
+    os.makedirs(inbox)
+    open(os.path.join(inbox, aid + ".pause"), "w").write("1")
+    assert "alarm" in [svc.step()[1] for _ in range(3)]

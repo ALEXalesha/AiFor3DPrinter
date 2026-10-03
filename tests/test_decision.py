@@ -93,3 +93,27 @@ def test_law_all_normal_never_alarms(seq):
     d = Decider(0.3, 1, 1, 0)
     for i, _ in enumerate(seq):
         assert d.update({"normal": 1.0}, i) is None
+
+
+def test_muted_class_never_votes_others_still_do():
+    d = Decider(0.7, 4, 3, 0)
+    d.mute("spaghetti")
+    assert all(d.update(bad("spaghetti"), t) is None for t in range(10))
+    assert [d.update(bad("blob"), t) is not None for t in range(10, 13)] == [False, False, True]
+
+
+def test_reset_unmutes():
+    d = Decider(0.7, 4, 3, 0)
+    d.mute("blob")
+    d.reset()
+    assert [d.update(bad("blob"), t) is not None for t in range(3)] == [False, False, True]
+
+
+@given(st.lists(probs_st, max_size=40), st.sets(st.sampled_from(FAILURES)))
+def test_law_alarm_class_never_muted(seq, muted):
+    d = Decider(0.5, 3, 2, 0)
+    for c in muted:
+        d.mute(c)
+    for i, p in enumerate(seq):
+        a = d.update(p, i)
+        assert a is None or a.cls not in muted

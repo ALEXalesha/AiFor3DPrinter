@@ -39,7 +39,8 @@ def caption(alarm, status, t, lang="ru"):
             where += f", слой {status.layer}/{status.total_layers}"
         lines.append(where)
     lines.append(time.strftime("%H:%M", time.localtime(t)))
-    lines.append("⏸ Пауза - поставить печать на паузу. ✅ Всё нормально - кадр пойдёт в обучение как пример без брака.")
+    lines.append("⏸ Пауза - поставить печать на паузу. ✅ Всё нормально - кадр пойдёт в обучение, "
+                 "а этот вид брака не будет тревожить до конца печати.")
     return "\n".join(lines)[:1000]
 
 
@@ -76,6 +77,13 @@ def save_alert(alarm, frame_jpeg, heat_jpeg, status, t, cfg):
     save_json(os.path.join(adir, "alert.json"), rec)
     append_history(rec)
     return aid
+
+
+def load_alert(aid):
+    if not ID_RE.match(str(aid)):
+        return None
+    rec = load_json(os.path.join(alerts_dir(), aid, "alert.json"))
+    return rec if isinstance(rec, dict) else None
 
 
 def history_path():
