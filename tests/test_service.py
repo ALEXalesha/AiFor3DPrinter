@@ -165,3 +165,13 @@ def test_pause_answer_does_not_mute(fake_camera):
     os.makedirs(inbox)
     open(os.path.join(inbox, aid + ".pause"), "w").write("1")
     assert "alarm" in [svc.step()[1] for _ in range(3)]
+
+
+def test_early_layers_more_sensitive_rule(fake_camera):
+    """Первые слои: порог 0.5 и 2 из 3 - отрыв на первых слоях самый частый, а снимки чаще."""
+    fake_camera.status_text = STATUS_PRINTING.replace("Слой 50/200", "Слой 2/200")
+    svc = make(fake_camera, FakeModel(default=bad("detached", 0.6)))
+    assert [svc.step()[1] for _ in range(2)] == ["ok", "alarm"]
+    fake_camera.status_text = STATUS_PRINTING          # слой 50: обычное правило, 0.6 < 0.7
+    svc2 = make(fake_camera, FakeModel(default=bad("detached", 0.6)))
+    assert [svc2.step()[1] for _ in range(5)] == ["ok"] * 5

@@ -14,6 +14,11 @@ from watcher.storage import load_json, save_json
 DEFAULTS = {
     "camera_url": "http://127.0.0.1:8099",
     "interval_s": 15,          # снимок раз в N секунд во время печати
+    "early_interval_s": 5,     # ... а на первых слоях чаще: отрыв 03.10.2026 был в первые минуты
+    "early_layers": 10,        # «первые слои» - до этого слоя включительно
+    "early_threshold": 0.5,    # на первых слоях правило чувствительнее: порог 0.5 ...
+    "early_window": 3,         # ... и 2 из 3 снимков
+    "early_need": 2,
     "threshold": 0.7,          # уверенность, с которой кадр считается «брак»
     "window": 4,               # решение по последним N кадрам ...
     "need": 3,                 # ... из них столько должны быть «брак»
@@ -27,6 +32,11 @@ DEFAULTS = {
 
 LIMITS = {
     "interval_s": (5, 300),
+    "early_interval_s": (3, 60),
+    "early_layers": (0, 100),
+    "early_threshold": (0.3, 0.99),
+    "early_window": (1, 10),
+    "early_need": (1, 10),
     "threshold": (0.3, 0.99),
     "window": (1, 10),
     "need": (1, 10),
@@ -51,6 +61,7 @@ def normalize(raw):
             v = min(max(v, lo), hi)
             cfg[key] = int(round(v)) if isinstance(DEFAULTS[key], int) else float(v)
     cfg["need"] = min(cfg["need"], cfg["window"])
+    cfg["early_need"] = min(cfg["early_need"], cfg["early_window"])
     cfg["auto_pause"] = raw.get("auto_pause") is True
     cfg["telegram"] = raw.get("telegram") is not False
     for key in ("camera_url", "bot_dir"):

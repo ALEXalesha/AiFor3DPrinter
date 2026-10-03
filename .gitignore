@@ -11,6 +11,8 @@ dist/
 selftest*.txt
 # сырые кадры, наборы и чекпойнты живут вне репозитория (%LOCALAPPDATA%\AiForPrinter)
 data/
+# хранилище снимков службы (обычно в %LOCALAPPDATA%, здесь - на случай AIFP_HOME в репозитории)
+prints/
 runs/
 *.pt
 *.pth

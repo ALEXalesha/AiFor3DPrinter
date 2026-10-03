@@ -3,6 +3,7 @@
     python main.py watch            служба (раз в N секунд, только во время печати)
     python main.py ui               окно: живой снимок, тепловая карта, история, настройки
     python main.py check            один снимок сейчас: оценка сетью (только чтение /snap)
+    python main.py review [N] [--rescore]   что видела служба: печати и оценки каждого снимка
     python main.py selftest FILE    проверка без экрана: сеть грузится, окно строится
 """
 import json
@@ -60,6 +61,9 @@ def main(argv):
     elif cmd == "ui":
         from ui.app import run
         sys.exit(run())
+    elif cmd == "review":
+        from watcher.review import main as review
+        review(argv[2:])
     elif cmd == "check":
         cmd_check()
     elif cmd == "selftest":
