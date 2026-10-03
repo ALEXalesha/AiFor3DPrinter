@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.venv/
+.ci-venv/
+.pytest_cache/
+.hypothesis/
+build/
+dist/
+*.spec
+*.tmp
+selftest*.txt
+# сырые кадры, наборы и чекпойнты живут вне репозитория (%LOCALAPPDATA%\AiForPrinter)
+data/
+runs/
+*.pt
+*.pth
+# кадры с камеры и из таймлапсов в репозиторий не кладём (комната, личные вещи)
+*.mp4
+dataset/raw/
+dataset/frames/

@@ -1,0 +1,39 @@
+# Проверки на домашнем Gitea на каждый пуш. Задачи идут на раннер ПК (метка windows):
+# windows-latest есть только у раннера ноутбука, без него задачи висели бы в очереди.
+#
+# Без PyTorch: служба и окно работают на onnxruntime, обучение (requirements-train.txt)
+# в CI не гоняется. Принтер, camera_server и бот не трогаются - вместо них подделки.
+# Окно проверяется без экрана (Qt offscreen, шрифты из папки Windows - offscreen.py).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Проверки
+    runs-on: windows
+    timeout-minutes: 25
+    env:
+      OPENBLAS_NUM_THREADS: "4"
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python ПК (3.13) в своём окружении, а не setup-python: тот ставит Python
+      # установщиком, которому нужны права администратора на реестр, - у раннера их нет.
+      - name: Python в отдельном окружении
+        run: |
+          py -3.13 -m venv .ci-venv
+          [IO.File]::AppendAllText($env:GITHUB_PATH, "$((Resolve-Path .ci-venv).Path)\Scripts`n")
+
+      - name: Зависимости
+        run: pip install -r requirements-dev.txt
+
+      - name: Тесты
+        run: python -m pytest -q

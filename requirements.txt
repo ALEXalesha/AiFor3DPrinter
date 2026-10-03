@@ -1,0 +1,5 @@
+# служба и окно
+numpy
+pillow
+onnxruntime
+PySide6

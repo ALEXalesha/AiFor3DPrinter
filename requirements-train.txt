@@ -1,0 +1,5 @@
+# обучение на видеокарте (не нужно службе): PyTorch с CUDA ставится отдельно, см. README
+#   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+-r requirements-dev.txt
+onnx
+opencv-python-headless
