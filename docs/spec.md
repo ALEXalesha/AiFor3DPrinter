@@ -113,4 +113,4 @@ AiForPrinter/
 
 **Репозиторий:** Gitea `ALEXaloysha/AiFor3DPrinter` (пустой).
 
-**GitHub:** `ALEXalesha/AiFor3DPrinter`, создан Алексеем 03.10.2026, пока пустой. Выкладка только через `tools/publish_github.sh` после Gitea.
+**GitHub:** `ALEXalesha/AiFor3DPrinter`, создан Алексеем 03.10.2026, код выложен 17.10.2026 по его «да». Выкладка только через `tools/publish_github.sh` (обёртка общего скрипта AiGames/PythonAiGames/tools/publish_game.sh) после Gitea.
