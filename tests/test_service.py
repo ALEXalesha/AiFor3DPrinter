@@ -49,8 +49,13 @@ def test_alarm_goes_to_bot_outbox_and_history(fake_camera):
     assert results == ["ok", "ok", "alarm", "ok"]
     out = os.path.join(os.environ["USERPROFILE"], "n8n_pc", "run", "aifp", "outbox")
     files = sorted(os.listdir(out))
-    assert len(files) == 2 and files[0].endswith(".jpg") and files[1].endswith(".json")
-    rec = json.load(open(os.path.join(out, files[1]), encoding="utf-8"))
+    assert len(files) == 3 and files[0].endswith(".full.jpg") and files[1].endswith(".jpg") and files[2].endswith(".json")
+    # 17.10: два фото - крупно место брака (16:9, увеличено) и весь кадр как есть
+    from PIL import Image
+    full = open(os.path.join(out, files[0]), "rb").read()
+    assert full == open(paths.data_path("last.jpg"), "rb").read(), "весь кадр - тот самый снимок, без разметки"
+    assert Image.open(os.path.join(out, files[1])).size == (960, 540)
+    rec = json.load(open(os.path.join(out, files[2]), encoding="utf-8"))
     assert rec["cls"] == "blob" and "ком на сопле" in rec["caption"] and alerts.ID_RE.match(rec["id"])
     assert len(alerts.load_history()) == 1
     assert "pause" not in fake_camera.routes

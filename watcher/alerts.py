@@ -3,8 +3,10 @@
 Обмен с ботом - через папку (по умолчанию n8n_pc\\run\\aifp), как у ответа Claude в боте:
 токен Telegram и chat id живут только в n8n, служба их не знает и знать не должна.
 
-    outbox/<id>.jpg   кадр с тепловой картой (пишется первым)
-    outbox/<id>.json  тревога; появление json = «можно отправлять»
+    outbox/<id>.full.jpg  весь кадр без разметки (пишется первым)
+    outbox/<id>.jpg       крупно место брака с рамкой (без крупного плана - кадр с тепловой картой)
+    outbox/<id>.json      тревога; появление json = «можно отправлять»
+Бот шлёт оба фото альбомом, следом подпись с кнопками (17.10: на одном кадре с картой «не видно»).
     inbox/<id>.ok     владелец нажал «Всё нормально» -> кадр уходит в набор как норма
     inbox/<id>.pause  владелец нажал «Пауза» (паузу ставит сам бот через camera_server)
 
@@ -54,12 +56,14 @@ def alerts_dir():
     return _dir("alerts")
 
 
-def save_alert(alarm, frame_jpeg, heat_jpeg, status, t, cfg):
-    """Кадр и запись о тревоге в папку данных, при включённом Telegram - файл боту. -> id."""
+def save_alert(alarm, frame_jpeg, heat_jpeg, status, t, cfg, zoom_jpeg=None):
+    """Кадр и запись о тревоге в папку данных, при включённом Telegram - файлы боту. -> id."""
     aid = new_id(t)
     adir = os.path.join(alerts_dir(), aid)
     save_bytes(os.path.join(adir, "frame.jpg"), frame_jpeg)
     save_bytes(os.path.join(adir, "heat.jpg"), heat_jpeg)
+    if zoom_jpeg:
+        save_bytes(os.path.join(adir, "zoom.jpg"), zoom_jpeg)
     rec = {
         "id": aid, "t": t, "cls": alarm.cls, "name": name(alarm.cls, "ru"), "score": round(alarm.score, 4),
         "votes": alarm.votes, "window": alarm.window,
@@ -70,7 +74,7 @@ def save_alert(alarm, frame_jpeg, heat_jpeg, status, t, cfg):
     if cfg.get("telegram"):
         from watcher.config import bot_dir
         out = os.path.join(bot_dir(cfg), "outbox")
-        ok = save_bytes(os.path.join(out, aid + ".jpg"), heat_jpeg) and save_json(
+        ok = (not zoom_jpeg or save_bytes(os.path.join(out, aid + ".full.jpg"), frame_jpeg)) and             save_bytes(os.path.join(out, aid + ".jpg"), zoom_jpeg or heat_jpeg) and save_json(
             os.path.join(out, aid + ".json"),
             {k: rec[k] for k in ("id", "t", "cls", "name", "score", "caption")})
         rec["sent_to_bot"] = bool(ok)

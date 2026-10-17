@@ -10,7 +10,7 @@ from PIL import Image
 
 from watcher import paths
 from watcher.classes import CLASSES
-from watcher.heatmap import colorize, hot_box, normalize_cam, overlay
+from watcher.heatmap import colorize, hot_box, normalize_cam, overlay, zoom
 from watcher.model_runtime import preprocess, softmax, to_rgb
 
 MODEL = paths.resource("model", "aifp.onnx")
@@ -55,6 +55,37 @@ def test_overlay_marks_hot_place():
     out = np.asarray(overlay(img, cam, "spaghetti")).astype(int)
     assert out[80:136, 505:555, 0].mean() > out[250:, :150, 0].mean() + 30
     assert overlay(img, None, "spaghetti").size == img.size
+
+
+def test_zoom_is_a_close_up_of_the_hot_place():
+    # 17.10 Алексей: «пусть скидывает 2 фото: область ошибки и просто фото, а то так не видно»
+    img = Image.new("RGB", (640, 360), (40, 40, 40))
+    img.paste((250, 250, 250), (520, 90, 540, 110))          # белая метка в месте брака
+    cam = np.zeros((5, 5, 9), np.float32)
+    cam[1, 1, 7] = 5.0                                        # спагетти справа вверху
+    z = zoom(img, cam, "spaghetti")
+    a = np.asarray(z).astype(int)
+    assert z.size == (960, 540)
+    white = a[..., 0] > 200
+    assert white.sum() > (20 * 20) * 4, "метка увеличена"     # кадр 640 -> вырезка не шире 0,45*640 -> 960
+    red = (a[..., 0] > 200) & (a[..., 1] < 80)
+    assert red.any(), "место отмечено рамкой"
+    spread = a.max(axis=2) - a.min(axis=2)
+    assert spread[~red].max() < 60, "без цветной тепловой карты: вне рамки кадр серый, как был"
+    full = zoom(img, None, "spaghetti")
+    assert full.size == (960, 540) and np.asarray(full).astype(int)[..., 0].max() > 200
+
+
+@given(st.integers(1, 9), st.integers(1, 9), st.integers(0, 2**31 - 1))
+def test_law_zoom_keeps_16x9_and_the_hot_place_inside(h, w, seed):
+    cam = np.zeros((5, h, w), np.float32)
+    cam[3] = np.random.default_rng(seed).normal(0, 1, (h, w))
+    img = Image.new("RGB", (640, 360), (40, 40, 40))
+    z = np.asarray(zoom(img, cam, CLASSES[3])).astype(int)
+    assert z.shape == (540, 960, 3)
+    red = (z[..., 0] > 200) & (z[..., 1] < 80)
+    if hot_box(normalize_cam(cam[3])):
+        assert red.any(), "рамка места видна в вырезке"
 
 
 @pytest.mark.skipif(not os.path.exists(MODEL), reason="сеть ещё не обучена")

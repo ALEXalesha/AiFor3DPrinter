@@ -55,6 +55,30 @@ def overlay(img, cam, cls, alpha=0.45):
     return out
 
 
+def zoom(img, cam, cls, out_w=960, min_frac=0.45, pad=0.6):
+    """Крупный план места брака для Telegram (17.10, Алексей: «область ошибки и просто фото, а то так не видно»).
+
+    Вырезка 16:9 вокруг горячей рамки (с запасом pad с каждой стороны, не меньше min_frac ширины кадра),
+    увеличенная до out_w; место брака - тонкая красная рамка, без цветной карты. Нет карты - весь кадр.
+    """
+    img = img.convert("RGB")
+    W, H = img.size
+    oh = round(out_w * H / W)
+    box = hot_box(normalize_cam(cam[CLASSES.index(cls)])) if cam is not None and cls in CLASSES else None
+    if not box:
+        return img.resize((out_w, oh), Image.LANCZOS)
+    x0, y0, x1, y1 = box[0] * W, box[1] * H, box[2] * W, box[3] * H
+    w = min(W, max((x1 - x0) * (1 + 2 * pad), (y1 - y0) * (1 + 2 * pad) * W / H, min_frac * W))
+    h = w * H / W
+    left = min(max((x0 + x1) / 2 - w / 2, 0), W - w)
+    top = min(max((y0 + y1) / 2 - h / 2, 0), H - h)
+    out = img.crop((round(left), round(top), round(left + w), round(top + h))).resize((out_w, oh), Image.LANCZOS)
+    k = out_w / w
+    ImageDraw.Draw(out).rectangle([(x0 - left) * k, (y0 - top) * k, (x1 - left) * k - 1, (y1 - top) * k - 1],
+                                  outline=(255, 40, 40), width=max(2, out_w // 320))
+    return out
+
+
 def jpeg(img, quality=85):
     buf = io.BytesIO()
     img.convert("RGB").save(buf, "JPEG", quality=quality)

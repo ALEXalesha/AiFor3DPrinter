@@ -22,7 +22,7 @@ from watcher.decision import Decider
 from watcher.framestore import FrameStore
 from watcher.motion import MotionWatch
 from watcher.review import fmt_probs
-from watcher.heatmap import jpeg, overlay
+from watcher.heatmap import jpeg, overlay, zoom
 from watcher.model_runtime import to_rgb
 from watcher.storage import save_bytes, save_json
 
@@ -206,7 +206,8 @@ class Service:
         if alarm is None:
             return interval, "ok"
         heat = jpeg(overlay(img, pred.cam, alarm.cls))
-        aid = alerts.save_alert(alarm, frame, heat, status, now, self.cfg)
+        close = jpeg(zoom(img, pred.cam, alarm.cls), quality=90)
+        aid = alerts.save_alert(alarm, frame, heat, status, now, self.cfg, zoom_jpeg=close)
         self.log.warning("ТРЕВОГА %s: %s %.0f%% (%d из %d кадров)", aid, alarm.cls, alarm.score * 100,
                          alarm.votes, alarm.window)
         if self.cfg["auto_pause"] is True:
