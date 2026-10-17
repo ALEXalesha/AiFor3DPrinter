@@ -2,6 +2,9 @@
 
 **A neural network watches the camera of an Elegoo Centauri Carbon while it prints and notices failures: spaghetti, the part detached from the bed, a blob of plastic on the nozzle, printing "into the air" with no extrusion. The alert arrives in Telegram as a photo with a heat map of where the failure is and two buttons, "⏸ Pause" and "✅ All good". The program never stops a print, and it pauses without a human only if that is explicitly turned on.**
 
+[![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+Code, tests and docs are written by Claude (Anthropic) in Claude Code. Ideas, testing and decisions - Alexey.
+
 [Русская версия](README.ru.md) - the full manual; this file summarises it. The window and the Telegram texts are in Russian and English.
 
 > Status on 2026-10-03: plan steps 1-7 are done (service, network, dataset, window, bot buttons). A week of observation on real prints (step 8) and the release (step 9) are ahead. The n8n bot with the alert buttons was deployed on 2026-10-03 and the service runs hidden (`tools\watch-hidden.vbs`, stop with `tools\stop-watch.ps1`).
