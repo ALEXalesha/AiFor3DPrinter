@@ -2,7 +2,8 @@
 
 **A neural network watches the camera of an Elegoo Centauri Carbon while it prints and notices failures: spaghetti, the part detached from the bed, a blob of plastic on the nozzle, printing "into the air" with no extrusion. The alert arrives in Telegram as a photo with a heat map of where the failure is and two buttons, "⏸ Pause" and "✅ All good". The program never stops a print, and it pauses without a human only if that is explicitly turned on.**
 
-[![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+[![Status](https://img.shields.io/badge/status-beta-yellow)](#) [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE) [![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://www.python.org/) [![PySide6](https://img.shields.io/badge/PySide6-41CD52?logo=qt&logoColor=white)](https://doc.qt.io/qtforpython-6/) [![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org/) [![OpenCV](https://img.shields.io/badge/OpenCV-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/) [![Built with Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+
 Code, tests and docs are written by Claude (Anthropic) in Claude Code. Ideas, testing and decisions - Alexey.
 
 [Русская версия](README.ru.md) - the full manual; this file summarises it. The window and the Telegram texts are in Russian and English.
