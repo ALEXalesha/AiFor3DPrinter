@@ -1,0 +1,37 @@
+# Проверки на GitHub (ревизия GitHub 25.10, Б5: CI был только на домашнем Gitea).
+# Без PyTorch: служба и окно работают на onnxruntime, обучение (requirements-train.txt) в CI не гоняется.
+# Принтер, camera_server и бот не трогаются - вместо них подделки. Окно - без экрана (Qt offscreen).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: "2"
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Selftest without a screen
+        run: |
+          python main.py selftest selftest.txt
+          Get-Content selftest.txt
