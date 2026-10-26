@@ -28,8 +28,14 @@ jobs:
       - name: Dependencies
         run: pip install -r requirements-dev.txt
 
+      # 26.10: на GitHub «182 passed», но шаг кончался кодом 1 (локально 0) - печать кода выхода, ошибок и
+      # предупреждений сессии, faulthandler на случай падения при выходе
       - name: Tests
-        run: python -m pytest -q
+        run: |
+          python -X faulthandler -m pytest -q -rfEw -p no:cacheprovider
+          $code = $LASTEXITCODE
+          Write-Host "pytest exit code: $code"
+          exit $code
 
       - name: Selftest without a screen
         run: |
