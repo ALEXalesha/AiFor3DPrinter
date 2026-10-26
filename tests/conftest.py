@@ -48,3 +48,21 @@ def qapp():
     from PySide6.QtWidgets import QApplication
     _app = QApplication.instance() or QApplication([])
     return _app
+
+
+def pytest_sessionfinish(session, exitstatus):
+    session.config._aifp_exit = int(exitstatus)
+
+
+def pytest_unconfigure(config):
+    """CI GitHub 26.10: после «182 passed» Python падал при выходе (Fatal Python error: Aborted, код 3, на медленной
+    машине) - окна и потоки Qt доживали до закрытия интерпретатора. После итогов pytest процесс выходит сразу
+    с кодом pytest, если загружен Qt; без Qt - обычный выход."""
+    code = getattr(config, "_aifp_exit", None)
+    if code is None or "PySide6.QtCore" not in sys.modules:
+        return
+    import faulthandler
+    faulthandler.disable()                # потоки Qt, падающие при выходе, - не шум в логе
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(code)
